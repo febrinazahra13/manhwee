@@ -1,38 +1,37 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
+import { auth } from "../firebase"; // 🔹 import firebase auth
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 export default function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("manhwee:users") || "[]");
-
-    // Check if user exists
-    if (users.find((u: any) => u.email === email || u.username === username)) {
-      alert("User already exists!");
-      return;
+    try {
+      setLoading(true);
+      // 🔹 create new user
+      await createUserWithEmailAndPassword(auth, email, password);
+      // optional: bisa simpan username ke Firestore
+      alert("Account created successfully!");
+      navigate("/app"); // langsung ke dashboard
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    // Add new user
-    const newUser = { username, email, password };
-    users.push(newUser);
-    localStorage.setItem("manhwee:users", JSON.stringify(users));
-
-    alert("Account created successfully! Please log in.");
-    navigate("/"); // back to login (Landing page)
   };
 
   return (
@@ -97,9 +96,10 @@ export default function Signup() {
 
           <button
             type="submit"
-            className="w-full mt-6 bg-green-500 text-black font-bold py-3 rounded-full hover:bg-green-400 transition"
+            disabled={loading}
+            className="w-full mt-6 bg-green-500 text-black font-bold py-3 rounded-full hover:bg-green-400 transition disabled:opacity-50"
           >
-            Sign Up
+            {loading ? "Creating..." : "Sign Up"}
           </button>
         </form>
 

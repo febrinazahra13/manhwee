@@ -2,39 +2,38 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate, Link } from "react-router-dom";
+import { auth } from "../firebase";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 export default function Landing() {
-  const [emailOrUsername, setEmailOrUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Ambil semua user dari localStorage
-    const users = JSON.parse(localStorage.getItem("manhwee:users") || "[]");
-
-    // Cari user yang cocok
-    const user = users.find(
-      (u: any) =>
-        (u.email === emailOrUsername || u.username === emailOrUsername) &&
-        u.password === password
-    );
-
-    if (user) {
-      // Simpan "session"
-      localStorage.setItem("manhwee:token", "dummy-session-token");
-      localStorage.setItem("manhwee:currentUser", JSON.stringify(user));
-
-      alert(`Welcome back, ${user.username}!`);
-      navigate("/app"); // redirect ke dashboard
-    } else {
-      alert("Invalid credentials ❌");
+    try {
+      setLoading(true);
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("Welcome back! 🎉");
+      navigate("/app");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    alert("Google login not implemented yet 🚀");
+  const handleGoogleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      alert("Signed in with Google ✅");
+      navigate("/app");
+    } catch (err: any) {
+      alert(err.message);
+    }
   };
 
   return (
@@ -48,12 +47,14 @@ export default function Landing() {
           Welcome to Manhwee
         </h1>
         <p className="text-neutral-400 text-center text-sm">
-          Track your manhwa reading journey with style ✨
+          Track your manhwa reading journey with ease ✨
         </p>
 
+        {/* Google Login */}
         <button
           onClick={handleGoogleLogin}
           className="w-full flex items-center justify-center gap-3 border border-neutral-700 rounded-full py-3 text-white hover:bg-neutral-800 transition"
+          disabled={loading}
         >
           <FcGoogle size={22} />
           Continue with Google
@@ -63,19 +64,19 @@ export default function Landing() {
           <div className="flex-1 h-px bg-neutral-700" />
           <span>or</span>
           <div className="flex-1 h-px bg-neutral-700" />
+          <div className="flex-1 h-px bg-neutral-700" />
         </div>
 
+        {/* Email/Password Login */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="text-left">
-            <label className="block text-sm text-white mb-1">
-              Email or username
-            </label>
+            <label className="block text-sm text-white mb-1">Email</label>
             <input
-              type="text"
-              placeholder="Email or username"
+              type="email"
+              placeholder="Enter your email"
               className="w-full bg-neutral-800 border border-neutral-700 text-white p-3 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={emailOrUsername}
-              onChange={(e) => setEmailOrUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
@@ -84,7 +85,7 @@ export default function Landing() {
             <label className="block text-sm text-white mb-1">Password</label>
             <input
               type="password"
-              placeholder="Password"
+              placeholder="Enter your password"
               className="w-full bg-neutral-800 border border-neutral-700 text-white p-3 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -94,18 +95,16 @@ export default function Landing() {
 
           <button
             type="submit"
-            className="w-full mt-6 bg-green-500 text-black font-bold py-3 rounded-full hover:bg-green-400 transition"
+            disabled={loading}
+            className="w-full mt-6 bg-green-500 text-black font-bold py-3 rounded-full hover:bg-green-400 transition disabled:opacity-50"
           >
-            Log In
+            {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
 
         <p className="text-center text-neutral-400 text-sm">
           Don’t have an account?{" "}
-          <Link
-            to="/signup"
-            className="text-green-400 font-medium hover:underline"
-          >
+          <Link to="/signup" className="text-green-400 font-medium hover:underline">
             Sign up
           </Link>
         </p>
