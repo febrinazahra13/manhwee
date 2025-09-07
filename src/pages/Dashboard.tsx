@@ -5,6 +5,8 @@ import { Home, BarChart2, User, LogOut, Plus } from "lucide-react";
 import DetailModal from "../components/DetailModal";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import type { Manhwa } from "../types";
+import { auth } from "../firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Dashboard() {
   const [items, setItems] = useLocalStorage<Manhwa[]>("manhwee:data", []);
@@ -19,19 +21,21 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState("recent");
   const [filter, setFilter] = useState({ type: "", status: "", rating: "" });
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- Check Auth (local only) ---
+  // Use Firebase auth state
   useEffect(() => {
-    const token = localStorage.getItem("manhwee:token");
-    if (!token) {
-      navigate("/"); // redirect to login
-    } else {
-      setAuthChecked(true);
-    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        navigate("/"); // not logged in → back to login
+      } else {
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
   }, [navigate]);
 
   // --- Close context menu on click outside ---
@@ -102,7 +106,7 @@ export default function Dashboard() {
     },
   };
 
-  if (!authChecked) {
+  if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <p className="text-gray-500">Checking authentication...</p>
