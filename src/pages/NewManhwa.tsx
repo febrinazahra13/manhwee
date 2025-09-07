@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { addDoc, collection, doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import type { Manhwa, ManhwaType, Status, ManhwaDraft } from "../types";
 
@@ -26,24 +26,10 @@ export default function NewManhwa() {
     finishedAt: "",
   });
 
-  // Prefill if editing
+  // Prefill form if editing
   useEffect(() => {
     if (editItem) {
-      setForm({
-        title: editItem.title,
-        author: editItem.author,
-        type: editItem.type,
-        genres: editItem.genres,
-        status: editItem.status,
-        rating: editItem.rating,
-        cover: editItem.cover,
-        link: editItem.link,
-        notes: editItem.notes,
-        currentChapter: editItem.currentChapter,
-        totalChapters: editItem.totalChapters,
-        startedAt: editItem.startedAt,
-        finishedAt: editItem.finishedAt,
-      });
+      setForm(editItem);
     }
   }, [editItem]);
 
@@ -58,39 +44,30 @@ export default function NewManhwa() {
       return;
     }
 
-    const manhwaId = editItem?.id
+    const manhwaId = editItem?.id || crypto.randomUUID();
+    const uid = auth.currentUser.uid;
+
     const newManhwa: Manhwa = {
       id: manhwaId,
-      title: form.title?.trim() || "Untitled",
-      author: form.author?.trim() || "Unknown",
+      uid,
+      title: form.title?.toString().trim() || "Untitled",
+      author: form.author?.toString().trim() || "Unknown",
       type: form.type as ManhwaType | undefined,
       genres: (form.genres as string[]) || [],
       status: (form.status as Status) || "Not Started",
-      rating: form.rating ? (parseInt(form.rating.toString(), 10) as 1 | 2 | 3 | 4 | 5) : undefined,
-      cover: form.cover?.trim() || "",
-      link: form.link?.trim() || "",
-      notes: form.notes?.trim() || "",
+      rating: form.rating ? (Number(form.rating) as 1 | 2 | 3 | 4 | 5) : undefined,
+      cover: form.cover?.toString().trim() || "",
+      link: form.link?.toString().trim() || "",
+      notes: form.notes?.toString().trim() || "",
       currentChapter: form.currentChapter ? Number(form.currentChapter) : undefined,
       totalChapters: form.totalChapters ? Number(form.totalChapters) : undefined,
-      startedAt: form.startedAt || "",
-      finishedAt: form.finishedAt || "",
-      endDate: undefined
+      startedAt: form.startedAt?.toString(),
+      finishedAt: form.finishedAt?.toString(),
+      endDate: (form as any).endDate || undefined, // keep if needed
     };
 
     try {
-      if (editItem) {
-        // update existing
-        await setDoc(doc(db, "manhwee", manhwaId), {
-          ...newManhwa,
-          uid: auth.currentUser.uid,
-        });
-      } else {
-        // create new
-        await setDoc(doc(db, "manhwee", manhwaId), {
-          ...newManhwa,
-          uid: auth.currentUser.uid,
-        });
-      }
+      await setDoc(doc(db, "manhwee", manhwaId), newManhwa);
       navigate("/app");
     } catch (error) {
       console.error("Error saving manhwa:", error);

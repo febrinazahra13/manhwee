@@ -41,7 +41,7 @@ export default function Dashboard() {
         return;
       }
 
-      setLoading(false); // ✅ stop loading as soon as we know user exists
+      setLoading(false);
 
       try {
         const q = query(

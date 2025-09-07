@@ -11,6 +11,7 @@ export type ManhwaType =
 export type Manhwa = {
   endDate: any;
   id: string;
+  uid: string;
   title: string;
   author?: string;
   type?: ManhwaType;
