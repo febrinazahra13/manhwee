@@ -192,7 +192,7 @@ export default function NewManhwa() {
             className="w-full p-2 border rounded-lg"
           >
             <option value="Not Started">Not Started</option>
-            <option value="In Progress">In Progress</option>
+            <option value="Reading">Reading</option>
             <option value="Completed">Completed</option>
             <option value="Dropped">Dropped</option>
           </select>
