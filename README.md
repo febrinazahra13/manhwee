@@ -71,4 +71,4 @@ Selama pengembangan, **IBM Granite AI** digunakan untuk:
    ```bash
    git clone https://github.com/febrinazahra13/manhwee.git
 
-Update: fixed deploy issue
+Update: test deploy fix
