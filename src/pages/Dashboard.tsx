@@ -9,7 +9,7 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  onSnapshot,
   deleteDoc,
   doc,
 } from "firebase/firestore";
@@ -33,32 +33,29 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🔑 Auth & Fetch Data
+  // 🔑 Auth & Realtime Firestore
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user) {
         setLoading(false);
         navigate("/");
         return;
       }
 
-      try {
-        const q = query(collection(db, "manhwee"), where("uid", "==", user.uid));
-        const snapshot = await getDocs(q);
+      const q = query(collection(db, "manhwee"), where("uid", "==", user.uid));
+      const unsubscribeSnap = onSnapshot(q, (snapshot) => {
         const manhwas = snapshot.docs.map((d) => ({
           id: d.id,
           ...d.data(),
         })) as Manhwa[];
-
         setItems(manhwas);
-      } catch (err) {
-        console.error("Error loading manhwas:", err);
-      } finally {
         setLoading(false);
-      }
+      });
+
+      return () => unsubscribeSnap();
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, [navigate]);
 
   // Close context menu on click outside
@@ -74,8 +71,6 @@ export default function Dashboard() {
     if (confirm("Are you sure you want to delete this manhwa?")) {
       try {
         await deleteDoc(doc(db, "manhwee", id));
-        setItems((prev) => prev.filter((i) => i.id !== id));
-        setContextMenu((prev) => ({ ...prev, visible: false }));
       } catch (err) {
         console.error("Failed to delete:", err);
         alert("Failed to delete manhwa.");
@@ -83,13 +78,11 @@ export default function Dashboard() {
     }
   };
 
-  // Edit (redirect to form with state)
   const handleEdit = (item: Manhwa) => {
     navigate("/new", { state: { editItem: item } });
     setContextMenu((prev) => ({ ...prev, visible: false }));
   };
 
-  // Logout
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -122,26 +115,6 @@ export default function Dashboard() {
     return true;
   });
 
-  // --- Navbar Styles ---
-  const NAV_STYLES: Record<string, { base: string; active: string }> = {
-    "/app": {
-      base: "bg-purple-500 text-white hover:bg-purple-600",
-      active: "bg-purple-700 text-white font-bold ring-2 ring-purple-900",
-    },
-    "/stats": {
-      base: "bg-green-500 text-white hover:bg-green-600",
-      active: "bg-green-700 text-white font-bold ring-2 ring-green-900",
-    },
-    "/profile": {
-      base: "bg-yellow-500 text-white hover:bg-yellow-600",
-      active: "bg-yellow-700 text-white font-bold ring-2 ring-yellow-900",
-    },
-    logout: {
-      base: "bg-red-600 text-white hover:bg-red-700",
-      active: "bg-red-700 text-white font-bold ring-2 ring-red-900",
-    },
-  };
-
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -152,63 +125,43 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 font-sans">
-      {/* --- NAVBAR --- */}
+      {/* NAVBAR */}
       <nav className="bg-white shadow-md px-6 py-3 flex items-center justify-between sticky top-0 z-40">
         <h1 className="text-lg font-bold text-purple-600">📑 Manhwee</h1>
         <div className="flex items-center gap-3 text-sm font-medium">
-          {/* Dashboard */}
           <button
             onClick={() => navigate("/app")}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
-              location.pathname === "/app"
-                ? NAV_STYLES["/app"].active
-                : NAV_STYLES["/app"].base
-            }`}
+            className="px-3 py-1 rounded-md bg-purple-500 text-white hover:bg-purple-600"
           >
             <Home size={16} /> Dashboard
           </button>
-
-          {/* Statistic */}
           <button
             onClick={() => navigate("/stats")}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
-              location.pathname === "/stats"
-                ? NAV_STYLES["/stats"].active
-                : NAV_STYLES["/stats"].base
-            }`}
+            className="px-3 py-1 rounded-md bg-green-500 text-white hover:bg-green-600"
           >
             <BarChart2 size={16} /> Statistic
           </button>
-
-          {/* Profile */}
           <button
             onClick={() => navigate("/profile")}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
-              location.pathname === "/profile"
-                ? NAV_STYLES["/profile"].active
-                : NAV_STYLES["/profile"].base
-            }`}
+            className="px-3 py-1 rounded-md bg-yellow-500 text-white hover:bg-yellow-600"
           >
             <User size={16} /> Profile
           </button>
-
-          {/* Logout */}
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${NAV_STYLES.logout.base}`}
+            className="px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
           >
             <LogOut size={16} /> Logout
           </button>
         </div>
       </nav>
 
-      {/* --- CONTENT --- */}
+      {/* CONTENT */}
       <section className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Toolbar */}
         <header className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">My Collection</h2>
           <div className="flex items-center gap-2">
-            {/* Search */}
             <input
               type="text"
               placeholder="Search..."
@@ -216,7 +169,6 @@ export default function Dashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="px-2 py-1 border rounded-md text-sm"
             />
-            {/* Sort */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -226,55 +178,9 @@ export default function Dashboard() {
               <option value="title-asc">Title (A-Z)</option>
               <option value="title-desc">Title (Z-A)</option>
             </select>
-            {/* Filter: Type */}
-            <select
-              value={filter.type}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, type: e.target.value }))
-              }
-              className="px-2 py-1 border rounded-md text-sm"
-            >
-              <option value="">All Types</option>
-              <option value="Shojo (G)">Shojo (G)</option>
-              <option value="Shounen (B)">Shounen (B)</option>
-              <option value="Josei (W)">Josei (W)</option>
-              <option value="Seinen (M)">Seinen (M)</option>
-              <option value="Yuri (GL)">Yuri (GL)</option>
-              <option value="Yaoi (BL)">Yaoi (BL)</option>
-            </select>
-            {/* Filter: Status */}
-            <select
-              value={filter.status}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, status: e.target.value }))
-              }
-              className="px-2 py-1 border rounded-md text-sm"
-            >
-              <option value="">All Status</option>
-              <option value="Not Started">Not Started</option>
-              <option value="Reading">Reading</option>
-              <option value="Completed">Completed</option>
-              <option value="Dropped">Dropped</option>
-            </select>
-            {/* Filter: Rating */}
-            <select
-              value={filter.rating}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, rating: e.target.value }))
-              }
-              className="px-2 py-1 border rounded-md text-sm"
-            >
-              <option value="">All Ratings</option>
-              {[1, 2, 3, 4, 5].map((r) => (
-                <option key={r} value={r}>
-                  {"⭐".repeat(r)}
-                </option>
-              ))}
-            </select>
-            {/* New */}
             <button
               onClick={() => navigate("/new")}
-              className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               <Plus size={16} /> New
             </button>
@@ -295,11 +201,10 @@ export default function Dashboard() {
                 onClick={() => setActiveItem(item)}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  e.stopPropagation();
                   setContextMenu({
                     visible: true,
-                    x: Math.min(e.pageX, window.innerWidth - 140),
-                    y: Math.min(e.pageY, window.innerHeight - 60),
+                    x: e.pageX,
+                    y: e.pageY,
                     item,
                   });
                 }}
@@ -312,11 +217,6 @@ export default function Dashboard() {
                     }
                     alt={item.title}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src =
-                        "https://via.placeholder.com/256?text=No+Image";
-                    }}
                   />
                 </div>
                 <div className="p-4 space-y-1">
@@ -326,14 +226,7 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-500 truncate">
                     {item.author || "Unknown Author"}
                   </p>
-                  {item.type && (
-                    <p className="text-sm text-gray-500 truncate">
-                      {item.type}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-500 truncate">
-                    {item.status}
-                  </p>
+                  <p className="text-sm text-gray-500">{item.status}</p>
                   {item.rating && (
                     <p className="text-yellow-500">
                       {"⭐".repeat(item.rating)}
@@ -372,7 +265,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* Full Detail Popup */}
+      {/* Detail Modal */}
       <DetailModal item={activeItem} onClose={() => setActiveItem(null)} />
     </main>
   );
