@@ -33,7 +33,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Load user data
+  // Load user data from Firestore
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -41,13 +41,8 @@ export default function Dashboard() {
         return;
       }
 
-      setLoading(false);
-
       try {
-        const q = query(
-          collection(db, "manhwee"),
-          where("uid", "==", user.uid)
-        );
+        const q = query(collection(db, "manhwee"), where("uid", "==", user.uid));
         const snapshot = await getDocs(q);
         const manhwas = snapshot.docs.map((d) => ({
           id: d.id,
@@ -57,6 +52,8 @@ export default function Dashboard() {
         setItems(manhwas);
       } catch (err) {
         console.error("Error loading manhwas:", err);
+      } finally {
+        setLoading(false);
       }
     });
 
@@ -65,8 +62,7 @@ export default function Dashboard() {
 
   // Close context menu on outside click
   useEffect(() => {
-    const handleClick = () =>
-      setContextMenu((prev) => ({ ...prev, visible: false }));
+    const handleClick = () => setContextMenu((prev) => ({ ...prev, visible: false }));
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
   }, []);
@@ -98,7 +94,7 @@ export default function Dashboard() {
   const sortedItems = [...items].sort((a, b) => {
     if (sortBy === "title-asc") return a.title.localeCompare(b.title);
     if (sortBy === "title-desc") return b.title.localeCompare(a.title);
-    return b.id.localeCompare(a.id);
+    return b.id.localeCompare(a.id); // recent
   });
 
   const filteredItems = sortedItems.filter((item) => {
@@ -154,9 +150,7 @@ export default function Dashboard() {
           <button
             onClick={() => navigate("/app")}
             className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
-              location.pathname === "/app"
-                ? NAV_STYLES["/app"].active
-                : NAV_STYLES["/app"].base
+              location.pathname === "/app" ? NAV_STYLES["/app"].active : NAV_STYLES["/app"].base
             }`}
           >
             <Home size={16} /> Dashboard
@@ -164,9 +158,7 @@ export default function Dashboard() {
           <button
             onClick={() => navigate("/stats")}
             className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
-              location.pathname === "/stats"
-                ? NAV_STYLES["/stats"].active
-                : NAV_STYLES["/stats"].base
+              location.pathname === "/stats" ? NAV_STYLES["/stats"].active : NAV_STYLES["/stats"].base
             }`}
           >
             <BarChart2 size={16} /> Statistics
@@ -174,9 +166,7 @@ export default function Dashboard() {
           <button
             onClick={() => navigate("/profile")}
             className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
-              location.pathname === "/profile"
-                ? NAV_STYLES["/profile"].active
-                : NAV_STYLES["/profile"].base
+              location.pathname === "/profile" ? NAV_STYLES["/profile"].active : NAV_STYLES["/profile"].base
             }`}
           >
             <User size={16} /> Profile
@@ -214,13 +204,11 @@ export default function Dashboard() {
             </select>
             <select
               value={filter.type}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, type: e.target.value }))
-              }
+              onChange={(e) => setFilter((f) => ({ ...f, type: e.target.value }))}
               className="px-2 py-1 border rounded-md text-sm"
             >
               <option value="">All Types</option>
-              <option value="Shojo (G)">Shojo (G)</option>
+              <option value="Shoujo (G)">Shoujo (G)</option>
               <option value="Shounen (B)">Shounen (B)</option>
               <option value="Josei (W)">Josei (W)</option>
               <option value="Seinen (M)">Seinen (M)</option>
@@ -229,9 +217,7 @@ export default function Dashboard() {
             </select>
             <select
               value={filter.status}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, status: e.target.value }))
-              }
+              onChange={(e) => setFilter((f) => ({ ...f, status: e.target.value }))}
               className="px-2 py-1 border rounded-md text-sm"
             >
               <option value="">All Status</option>
@@ -242,9 +228,7 @@ export default function Dashboard() {
             </select>
             <select
               value={filter.rating}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, rating: e.target.value }))
-              }
+              onChange={(e) => setFilter((f) => ({ ...f, rating: e.target.value }))}
               className="px-2 py-1 border rounded-md text-sm"
             >
               <option value="">All Ratings</option>
@@ -266,9 +250,7 @@ export default function Dashboard() {
         {/* Grid */}
         <div className="grid grid-cols-3 gap-6">
           {filteredItems.length === 0 ? (
-            <p className="text-gray-500 w-full text-center mt-4">
-              No manhwa found.
-            </p>
+            <p className="text-gray-500 w-full text-center mt-4">No manhwa found.</p>
           ) : (
             filteredItems.map((item) => (
               <div
@@ -288,39 +270,21 @@ export default function Dashboard() {
               >
                 <div className="w-full aspect-square overflow-hidden">
                   <img
-                    src={
-                      item.cover ||
-                      "https://via.placeholder.com/256?text=No+Image"
-                    }
+                    src={item.cover || "https://via.placeholder.com/256?text=No+Image"}
                     alt={item.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src =
+                      (e.target as HTMLImageElement).src =
                         "https://via.placeholder.com/256?text=No+Image";
                     }}
                   />
                 </div>
                 <div className="p-4 space-y-1">
-                  <h2 className="font-semibold text-lg truncate">
-                    {item.title}
-                  </h2>
-                  <p className="text-sm text-gray-500 truncate">
-                    {item.author || "Unknown Author"}
-                  </p>
-                  {item.type && (
-                    <p className="text-sm text-gray-500 truncate">
-                      {item.type}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-500 truncate">
-                    {item.status}
-                  </p>
-                  {item.rating && (
-                    <p className="text-yellow-500">
-                      {"⭐".repeat(item.rating)}
-                    </p>
-                  )}
+                  <h2 className="font-semibold text-lg truncate">{item.title}</h2>
+                  <p className="text-sm text-gray-500 truncate">{item.author || "Unknown Author"}</p>
+                  {item.type && <p className="text-sm text-gray-500 truncate">{item.type}</p>}
+                  <p className="text-sm text-gray-500 truncate">{item.status}</p>
+                  {item.rating && <p className="text-yellow-500">{"⭐".repeat(item.rating)}</p>}
                 </div>
               </div>
             ))
