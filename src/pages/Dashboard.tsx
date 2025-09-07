@@ -9,7 +9,7 @@ import {
   collection,
   query,
   where,
-  onSnapshot,
+  getDocs,
   deleteDoc,
   doc,
 } from "firebase/firestore";
@@ -33,32 +33,38 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🔑 Auth & Realtime Firestore
+  // ✅ Listen to auth state and load user's manhwa collection
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setLoading(false);
         navigate("/");
         return;
       }
 
-      const q = query(collection(db, "manhwee"), where("uid", "==", user.uid));
-      const unsubscribeSnap = onSnapshot(q, (snapshot) => {
+      try {
+        const q = query(
+          collection(db, "manhwee"),
+          where("uid", "==", user.uid)
+        );
+        const snapshot = await getDocs(q);
         const manhwas = snapshot.docs.map((d) => ({
           id: d.id,
           ...d.data(),
         })) as Manhwa[];
-        setItems(manhwas);
-        setLoading(false);
-      });
 
-      return () => unsubscribeSnap();
+        setItems(manhwas);
+      } catch (err) {
+        console.error("Error loading manhwas:", err);
+      } finally {
+        setLoading(false);
+      }
     });
 
-    return () => unsubscribeAuth();
+    return () => unsubscribe();
   }, [navigate]);
 
-  // Close context menu on click outside
+  // ✅ Close context menu when clicking outside
   useEffect(() => {
     const handleClick = () =>
       setContextMenu((prev) => ({ ...prev, visible: false }));
@@ -66,15 +72,16 @@ export default function Dashboard() {
     return () => window.removeEventListener("click", handleClick);
   }, []);
 
-  // 🔥 Delete from Firestore
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this manhwa?")) {
       try {
         await deleteDoc(doc(db, "manhwee", id));
+        setItems((prev) => prev.filter((i) => i.id !== id));
       } catch (err) {
-        console.error("Failed to delete:", err);
-        alert("Failed to delete manhwa.");
+        console.error("Error deleting manhwa:", err);
+        alert("Failed to delete. Please try again.");
       }
+      setContextMenu((prev) => ({ ...prev, visible: false }));
     }
   };
 
@@ -84,19 +91,15 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/");
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
+    await signOut(auth);
+    navigate("/");
   };
 
-  // --- Derived Data: Sorting + Filtering + Search ---
+  // ✅ Sorting + Filtering + Search
   const sortedItems = [...items].sort((a, b) => {
     if (sortBy === "title-asc") return a.title.localeCompare(b.title);
     if (sortBy === "title-desc") return b.title.localeCompare(a.title);
-    return b.id.localeCompare(a.id); // recent (by id)
+    return b.id.localeCompare(a.id);
   });
 
   const filteredItems = sortedItems.filter((item) => {
@@ -115,6 +118,26 @@ export default function Dashboard() {
     return true;
   });
 
+  // ✅ Navbar styles
+  const NAV_STYLES: Record<string, { base: string; active: string }> = {
+    "/app": {
+      base: "bg-purple-500 text-white hover:bg-purple-600",
+      active: "bg-purple-700 text-white font-bold ring-2 ring-purple-900",
+    },
+    "/stats": {
+      base: "bg-green-500 text-white hover:bg-green-600",
+      active: "bg-green-700 text-white font-bold ring-2 ring-green-900",
+    },
+    "/profile": {
+      base: "bg-yellow-500 text-white hover:bg-yellow-600",
+      active: "bg-yellow-700 text-white font-bold ring-2 ring-yellow-900",
+    },
+    logout: {
+      base: "bg-red-600 text-white hover:bg-red-700",
+      active: "bg-red-700 text-white font-bold ring-2 ring-red-900",
+    },
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -125,40 +148,51 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 font-sans">
-      {/* NAVBAR */}
+      {/* --- NAVBAR --- */}
       <nav className="bg-white shadow-md px-6 py-3 flex items-center justify-between sticky top-0 z-40">
         <h1 className="text-lg font-bold text-purple-600">📑 Manhwee</h1>
         <div className="flex items-center gap-3 text-sm font-medium">
           <button
             onClick={() => navigate("/app")}
-            className="px-3 py-1 rounded-md bg-purple-500 text-white hover:bg-purple-600"
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
+              location.pathname === "/app"
+                ? NAV_STYLES["/app"].active
+                : NAV_STYLES["/app"].base
+            }`}
           >
             <Home size={16} /> Dashboard
           </button>
           <button
             onClick={() => navigate("/stats")}
-            className="px-3 py-1 rounded-md bg-green-500 text-white hover:bg-green-600"
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
+              location.pathname === "/stats"
+                ? NAV_STYLES["/stats"].active
+                : NAV_STYLES["/stats"].base
+            }`}
           >
-            <BarChart2 size={16} /> Statistic
+            <BarChart2 size={16} /> Stats
           </button>
           <button
             onClick={() => navigate("/profile")}
-            className="px-3 py-1 rounded-md bg-yellow-500 text-white hover:bg-yellow-600"
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
+              location.pathname === "/profile"
+                ? NAV_STYLES["/profile"].active
+                : NAV_STYLES["/profile"].base
+            }`}
           >
             <User size={16} /> Profile
           </button>
           <button
             onClick={handleLogout}
-            className="px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${NAV_STYLES.logout.base}`}
           >
             <LogOut size={16} /> Logout
           </button>
         </div>
       </nav>
 
-      {/* CONTENT */}
+      {/* --- CONTENT --- */}
       <section className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Toolbar */}
         <header className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">My Collection</h2>
           <div className="flex items-center gap-2">
@@ -178,16 +212,57 @@ export default function Dashboard() {
               <option value="title-asc">Title (A-Z)</option>
               <option value="title-desc">Title (Z-A)</option>
             </select>
+            <select
+              value={filter.type}
+              onChange={(e) =>
+                setFilter((f) => ({ ...f, type: e.target.value }))
+              }
+              className="px-2 py-1 border rounded-md text-sm"
+            >
+              <option value="">All Types</option>
+              <option value="Shojo (G)">Shojo (G)</option>
+              <option value="Shounen (B)">Shounen (B)</option>
+              <option value="Josei (W)">Josei (W)</option>
+              <option value="Seinen (M)">Seinen (M)</option>
+              <option value="Yuri (GL)">Yuri (GL)</option>
+              <option value="Yaoi (BL)">Yaoi (BL)</option>
+            </select>
+            <select
+              value={filter.status}
+              onChange={(e) =>
+                setFilter((f) => ({ ...f, status: e.target.value }))
+              }
+              className="px-2 py-1 border rounded-md text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="Not Started">Not Started</option>
+              <option value="Reading">Reading</option>
+              <option value="Completed">Completed</option>
+              <option value="Dropped">Dropped</option>
+            </select>
+            <select
+              value={filter.rating}
+              onChange={(e) =>
+                setFilter((f) => ({ ...f, rating: e.target.value }))
+              }
+              className="px-2 py-1 border rounded-md text-sm"
+            >
+              <option value="">All Ratings</option>
+              {[1, 2, 3, 4, 5].map((r) => (
+                <option key={r} value={r}>
+                  {"⭐".repeat(r)}
+                </option>
+              ))}
+            </select>
             <button
               onClick={() => navigate("/new")}
-              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
             >
               <Plus size={16} /> New
             </button>
           </div>
         </header>
 
-        {/* Grid */}
         <div className="grid grid-cols-3 gap-6">
           {filteredItems.length === 0 ? (
             <p className="text-gray-500 w-full text-center mt-4">
@@ -201,10 +276,11 @@ export default function Dashboard() {
                 onClick={() => setActiveItem(item)}
                 onContextMenu={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   setContextMenu({
                     visible: true,
-                    x: e.pageX,
-                    y: e.pageY,
+                    x: Math.min(e.pageX, window.innerWidth - 140),
+                    y: Math.min(e.pageY, window.innerHeight - 60),
                     item,
                   });
                 }}
@@ -217,6 +293,10 @@ export default function Dashboard() {
                     }
                     alt={item.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "https://via.placeholder.com/256?text=No+Image";
+                    }}
                   />
                 </div>
                 <div className="p-4 space-y-1">
@@ -226,7 +306,14 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-500 truncate">
                     {item.author || "Unknown Author"}
                   </p>
-                  <p className="text-sm text-gray-500">{item.status}</p>
+                  {item.type && (
+                    <p className="text-sm text-gray-500 truncate">
+                      {item.type}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-500 truncate">
+                    {item.status}
+                  </p>
                   {item.rating && (
                     <p className="text-yellow-500">
                       {"⭐".repeat(item.rating)}
@@ -265,7 +352,6 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* Detail Modal */}
       <DetailModal item={activeItem} onClose={() => setActiveItem(null)} />
     </main>
   );
