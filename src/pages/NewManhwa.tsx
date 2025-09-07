@@ -26,7 +26,7 @@ export default function NewManhwa() {
     finishedAt: "",
   });
 
-  // Prefill form if editing
+  // Prefill when editing
   useEffect(() => {
     if (editItem) {
       setForm(editItem);
@@ -39,39 +39,59 @@ export default function NewManhwa() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!auth.currentUser) {
       alert("You must be logged in!");
       return;
     }
 
-    const manhwaId = editItem?.id || crypto.randomUUID();
-    const uid = auth.currentUser.uid;
-
-    const newManhwa: Manhwa = {
-      id: manhwaId,
-      uid,
-      title: form.title?.toString().trim() || "Untitled",
-      author: form.author?.toString().trim() || "Unknown",
-      type: form.type as ManhwaType | undefined,
-      genres: (form.genres as string[]) || [],
-      status: (form.status as Status) || "Not Started",
-      rating: form.rating ? (Number(form.rating) as 1 | 2 | 3 | 4 | 5) : undefined,
-      cover: form.cover?.toString().trim() || "",
-      link: form.link?.toString().trim() || "",
-      notes: form.notes?.toString().trim() || "",
-      currentChapter: form.currentChapter ? Number(form.currentChapter) : undefined,
-      totalChapters: form.totalChapters ? Number(form.totalChapters) : undefined,
-      startedAt: form.startedAt?.toString(),
-      finishedAt: form.finishedAt?.toString(),
-      endDate: (form as any).endDate || undefined, // keep if needed
-    };
-
     try {
-      await setDoc(doc(db, "manhwee", manhwaId), newManhwa);
+      const manhwaId = editItem?.id || Date.now().toString();
+
+      const newManhwa: Manhwa = {
+        id: manhwaId,
+        uid: auth.currentUser.uid,
+        title: form.title?.toString().trim() || "Untitled",
+        author: form.author?.toString().trim() || "Unknown",
+        type: form.type as ManhwaType | undefined,
+        genres: (form.genres as string[]) || [],
+        status: (form.status as Status) || "Not Started",
+        rating:
+          form.rating && !isNaN(Number(form.rating))
+            ? (Number(form.rating) as 1 | 2 | 3 | 4 | 5)
+            : undefined,
+        cover: form.cover?.toString().trim() || "",
+        link: form.link?.toString().trim() || "",
+        notes: form.notes?.toString().trim() || "",
+        currentChapter:
+          form.currentChapter && !isNaN(Number(form.currentChapter))
+            ? Number(form.currentChapter)
+            : undefined,
+        totalChapters:
+          form.totalChapters && !isNaN(Number(form.totalChapters))
+            ? Number(form.totalChapters)
+            : undefined,
+        startedAt: form.startedAt || undefined,
+        finishedAt: form.finishedAt || undefined,
+      };
+
+      // Remove empty values
+      const cleanObject: any = Object.fromEntries(
+        Object.entries(newManhwa).filter(
+          ([_, v]) => v !== undefined && v !== null && v !== ""
+        )
+      );
+      cleanObject.id = manhwaId;
+      cleanObject.uid = auth.currentUser.uid;
+
+      // Save or update
+      await setDoc(doc(db, "manhwee", manhwaId), cleanObject, { merge: true });
+
+      // 🔹 Go back to dashboard (realtime listener akan otomatis update)
       navigate("/app");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving manhwa:", error);
-      alert("Failed to save. Please try again.");
+      alert("Failed to save: " + error.message);
     }
   };
 
@@ -105,7 +125,7 @@ export default function NewManhwa() {
           />
         </div>
 
-        {/* Cover URL */}
+        {/* Cover */}
         <div>
           <label className="block text-sm font-medium mb-1">Cover URL</label>
           <input
@@ -118,7 +138,7 @@ export default function NewManhwa() {
           {form.cover && (
             <img
               src={form.cover}
-              alt="Cover Preview"
+              alt="Preview"
               className="mt-2 w-32 h-48 object-cover rounded-lg shadow"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
@@ -126,6 +146,43 @@ export default function NewManhwa() {
               }}
             />
           )}
+        </div>
+
+        {/* Type */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Type</label>
+          <select
+            value={form.type || ""}
+            onChange={(e) =>
+              handleChange("type", e.target.value as ManhwaType)
+            }
+            className="w-full p-2 border rounded-lg"
+          >
+            <option value="">Select Type</option>
+            <option value="Shoujo (G)">Shoujo (G)</option>
+            <option value="Shounen (B)">Shounen (B)</option>
+            <option value="Josei (W)">Josei (W)</option>
+            <option value="Seinen (M)">Seinen (M)</option>
+            <option value="Yuri (GL)">Yuri (GL)</option>
+            <option value="Yaoi (BL)">Yaoi (BL)</option>
+          </select>
+        </div>
+
+        {/* Genres */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Genres</label>
+          <input
+            type="text"
+            value={form.genres?.join(", ") || ""}
+            onChange={(e) =>
+              handleChange(
+                "genres",
+                e.target.value.split(",").map((g) => g.trim())
+              )
+            }
+            className="w-full p-2 border rounded-lg"
+            placeholder="Action, Romance, Fantasy"
+          />
         </div>
 
         {/* Status */}
@@ -148,7 +205,7 @@ export default function NewManhwa() {
           <label className="block text-sm font-medium mb-1">Rating</label>
           <select
             value={form.rating || ""}
-            onChange={(e) => handleChange("rating", e.target.value)}
+            onChange={(e) => handleChange("rating", Number(e.target.value))}
             className="w-full p-2 border rounded-lg"
           >
             <option value="">No Rating</option>
@@ -158,6 +215,70 @@ export default function NewManhwa() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Current Chapter */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Current Chapter</label>
+          <input
+            type="number"
+            value={form.currentChapter || ""}
+            onChange={(e) =>
+              handleChange(
+                "currentChapter",
+                e.target.value ? Number(e.target.value) : undefined
+              )
+            }
+            className="w-full p-2 border rounded-lg"
+          />
+        </div>
+
+        {/* Total Chapters */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Total Chapters</label>
+          <input
+            type="number"
+            value={form.totalChapters || ""}
+            onChange={(e) =>
+              handleChange(
+                "totalChapters",
+                e.target.value ? Number(e.target.value) : undefined
+              )
+            }
+            className="w-full p-2 border rounded-lg"
+          />
+        </div>
+
+        {/* Dates */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Started At</label>
+          <input
+            type="date"
+            value={form.startedAt || ""}
+            onChange={(e) => handleChange("startedAt", e.target.value)}
+            className="w-full p-2 border rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Finished At</label>
+          <input
+            type="date"
+            value={form.finishedAt || ""}
+            onChange={(e) => handleChange("finishedAt", e.target.value)}
+            className="w-full p-2 border rounded-lg"
+          />
+        </div>
+
+        {/* Link */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Link</label>
+          <input
+            type="url"
+            value={form.link || ""}
+            onChange={(e) => handleChange("link", e.target.value)}
+            className="w-full p-2 border rounded-lg"
+            placeholder="https://example.com"
+          />
         </div>
 
         {/* Notes */}
