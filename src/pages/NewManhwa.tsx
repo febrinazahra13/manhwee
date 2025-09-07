@@ -56,23 +56,21 @@ export default function NewManhwa() {
         type: form.type as ManhwaType | undefined,
         genres: (form.genres as string[]) || [],
         status: (form.status as Status) || "Not Started",
-        rating:
-          form.rating && !isNaN(Number(form.rating))
-            ? (Number(form.rating) as 1 | 2 | 3 | 4 | 5)
-            : undefined,
+        rating: form.rating && !isNaN(Number(form.rating))
+          ? (Number(form.rating) as 1 | 2 | 3 | 4 | 5)
+          : undefined,
         cover: form.cover?.toString().trim() || "",
         link: form.link?.toString().trim() || "",
         notes: form.notes?.toString().trim() || "",
-        currentChapter:
-          form.currentChapter && !isNaN(Number(form.currentChapter))
-            ? Number(form.currentChapter)
-            : undefined,
-        totalChapters:
-          form.totalChapters && !isNaN(Number(form.totalChapters))
-            ? Number(form.totalChapters)
-            : undefined,
+        currentChapter: form.currentChapter && !isNaN(Number(form.currentChapter))
+          ? Number(form.currentChapter)
+          : undefined,
+        totalChapters: form.totalChapters && !isNaN(Number(form.totalChapters))
+          ? Number(form.totalChapters)
+          : undefined,
         startedAt: form.startedAt || undefined,
         finishedAt: form.finishedAt || undefined,
+        endDate: undefined
       };
 
       // Remove empty values
@@ -173,7 +171,7 @@ export default function NewManhwa() {
           <label className="block text-sm font-medium mb-1">Genres</label>
           <input
             type="text"
-            value={form.genres?.join(", ") || ""}
+            value={Array.isArray(form.genres) ? form.genres.join(", ") : ""}
             onChange={(e) =>
               handleChange(
                 "genres",
