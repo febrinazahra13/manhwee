@@ -33,14 +33,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Listen to auth state and load user's manhwa collection
+  // Load user data
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        setLoading(false);
         navigate("/");
         return;
       }
+
+      setLoading(false); // ✅ stop loading as soon as we know user exists
 
       try {
         const q = query(
@@ -56,15 +57,13 @@ export default function Dashboard() {
         setItems(manhwas);
       } catch (err) {
         console.error("Error loading manhwas:", err);
-      } finally {
-        setLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, [navigate]);
 
-  // ✅ Close context menu when clicking outside
+  // Close context menu on outside click
   useEffect(() => {
     const handleClick = () =>
       setContextMenu((prev) => ({ ...prev, visible: false }));
@@ -79,7 +78,7 @@ export default function Dashboard() {
         setItems((prev) => prev.filter((i) => i.id !== id));
       } catch (err) {
         console.error("Error deleting manhwa:", err);
-        alert("Failed to delete. Please try again.");
+        alert("Failed to delete. Try again.");
       }
       setContextMenu((prev) => ({ ...prev, visible: false }));
     }
@@ -95,7 +94,7 @@ export default function Dashboard() {
     navigate("/");
   };
 
-  // ✅ Sorting + Filtering + Search
+  // Sorting + Filtering + Search
   const sortedItems = [...items].sort((a, b) => {
     if (sortBy === "title-asc") return a.title.localeCompare(b.title);
     if (sortBy === "title-desc") return b.title.localeCompare(a.title);
@@ -118,7 +117,7 @@ export default function Dashboard() {
     return true;
   });
 
-  // ✅ Navbar styles
+  // Navbar styles
   const NAV_STYLES: Record<string, { base: string; active: string }> = {
     "/app": {
       base: "bg-purple-500 text-white hover:bg-purple-600",
@@ -148,7 +147,7 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 font-sans">
-      {/* --- NAVBAR --- */}
+      {/* Navbar */}
       <nav className="bg-white shadow-md px-6 py-3 flex items-center justify-between sticky top-0 z-40">
         <h1 className="text-lg font-bold text-purple-600">📑 Manhwee</h1>
         <div className="flex items-center gap-3 text-sm font-medium">
@@ -170,7 +169,7 @@ export default function Dashboard() {
                 : NAV_STYLES["/stats"].base
             }`}
           >
-            <BarChart2 size={16} /> Stats
+            <BarChart2 size={16} /> Statistics
           </button>
           <button
             onClick={() => navigate("/profile")}
@@ -191,8 +190,9 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* --- CONTENT --- */}
+      {/* Content */}
       <section className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Toolbar */}
         <header className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">My Collection</h2>
           <div className="flex items-center gap-2">
@@ -263,6 +263,7 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {/* Grid */}
         <div className="grid grid-cols-3 gap-6">
           {filteredItems.length === 0 ? (
             <p className="text-gray-500 w-full text-center mt-4">
@@ -294,7 +295,8 @@ export default function Dashboard() {
                     alt={item.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src =
+                      const target = e.target as HTMLImageElement;
+                      target.src =
                         "https://via.placeholder.com/256?text=No+Image";
                     }}
                   />
@@ -352,6 +354,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
+      {/* Detail Modal */}
       <DetailModal item={activeItem} onClose={() => setActiveItem(null)} />
     </main>
   );
