@@ -5,13 +5,26 @@ import { Home, BarChart2, User, LogOut, Plus } from "lucide-react";
 import DetailModal from "../components/DetailModal";
 import type { Manhwa } from "../types";
 import { db, auth } from "../firebase";
-import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Dashboard() {
   const [items, setItems] = useState<Manhwa[]>([]);
   const [activeItem, setActiveItem] = useState<Manhwa | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; item: Manhwa | null }>({ visible: false, x: 0, y: 0, item: null });
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    item: Manhwa | null;
+  }>({ visible: false, x: 0, y: 0, item: null });
+
   const [sortBy, setSortBy] = useState("recent");
   const [filter, setFilter] = useState({ type: "", status: "", rating: "" });
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,7 +33,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Load user data & wait for auth state
+  // Load user data
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -28,15 +41,22 @@ export default function Dashboard() {
         return;
       }
 
+      setLoading(false);
+
       try {
-        const q = query(collection(db, "manhwee"), where("uid", "==", user.uid));
+        const q = query(
+          collection(db, "manhwee"),
+          where("uid", "==", user.uid)
+        );
         const snapshot = await getDocs(q);
-        const manhwas = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as Manhwa[];
+        const manhwas = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Manhwa[];
+
         setItems(manhwas);
       } catch (err) {
         console.error("Error loading manhwas:", err);
-      } finally {
-        setLoading(false); // pastikan loading false setelah data load
       }
     });
 
@@ -45,7 +65,8 @@ export default function Dashboard() {
 
   // Close context menu on outside click
   useEffect(() => {
-    const handleClick = () => setContextMenu((prev) => ({ ...prev, visible: false }));
+    const handleClick = () =>
+      setContextMenu((prev) => ({ ...prev, visible: false }));
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
   }, []);
@@ -87,16 +108,33 @@ export default function Dashboard() {
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return item.title.toLowerCase().includes(q) || (item.author || "").toLowerCase().includes(q) || item.genres?.some((g) => g.toLowerCase().includes(q));
+      return (
+        item.title.toLowerCase().includes(q) ||
+        (item.author || "").toLowerCase().includes(q) ||
+        item.genres?.some((g) => g.toLowerCase().includes(q))
+      );
     }
     return true;
   });
 
+  // Navbar styles
   const NAV_STYLES: Record<string, { base: string; active: string }> = {
-    "/app": { base: "bg-purple-500 text-white hover:bg-purple-600", active: "bg-purple-700 text-white font-bold ring-2 ring-purple-900" },
-    "/stats": { base: "bg-green-500 text-white hover:bg-green-600", active: "bg-green-700 text-white font-bold ring-2 ring-green-900" },
-    "/profile": { base: "bg-yellow-500 text-white hover:bg-yellow-600", active: "bg-yellow-700 text-white font-bold ring-2 ring-yellow-900" },
-    logout: { base: "bg-red-600 text-white hover:bg-red-700", active: "bg-red-700 text-white font-bold ring-2 ring-red-900" },
+    "/app": {
+      base: "bg-purple-500 text-white hover:bg-purple-600",
+      active: "bg-purple-700 text-white font-bold ring-2 ring-purple-900",
+    },
+    "/stats": {
+      base: "bg-green-500 text-white hover:bg-green-600",
+      active: "bg-green-700 text-white font-bold ring-2 ring-green-900",
+    },
+    "/profile": {
+      base: "bg-yellow-500 text-white hover:bg-yellow-600",
+      active: "bg-yellow-700 text-white font-bold ring-2 ring-yellow-900",
+    },
+    logout: {
+      base: "bg-red-600 text-white hover:bg-red-700",
+      active: "bg-red-700 text-white font-bold ring-2 ring-red-900",
+    },
   };
 
   if (loading) {
@@ -113,10 +151,42 @@ export default function Dashboard() {
       <nav className="bg-white shadow-md px-6 py-3 flex items-center justify-between sticky top-0 z-40">
         <h1 className="text-lg font-bold text-purple-600">📑 Manhwee</h1>
         <div className="flex items-center gap-3 text-sm font-medium">
-          <button onClick={() => navigate("/app")} className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${location.pathname === "/app" ? NAV_STYLES["/app"].active : NAV_STYLES["/app"].base}`}><Home size={16} /> Dashboard</button>
-          <button onClick={() => navigate("/stats")} className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${location.pathname === "/stats" ? NAV_STYLES["/stats"].active : NAV_STYLES["/stats"].base}`}><BarChart2 size={16} /> Statistics</button>
-          <button onClick={() => navigate("/profile")} className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${location.pathname === "/profile" ? NAV_STYLES["/profile"].active : NAV_STYLES["/profile"].base}`}><User size={16} /> Profile</button>
-          <button onClick={handleLogout} className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${NAV_STYLES.logout.base}`}><LogOut size={16} /> Logout</button>
+          <button
+            onClick={() => navigate("/app")}
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
+              location.pathname === "/app"
+                ? NAV_STYLES["/app"].active
+                : NAV_STYLES["/app"].base
+            }`}
+          >
+            <Home size={16} /> Dashboard
+          </button>
+          <button
+            onClick={() => navigate("/stats")}
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
+              location.pathname === "/stats"
+                ? NAV_STYLES["/stats"].active
+                : NAV_STYLES["/stats"].base
+            }`}
+          >
+            <BarChart2 size={16} /> Statistics
+          </button>
+          <button
+            onClick={() => navigate("/profile")}
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${
+              location.pathname === "/profile"
+                ? NAV_STYLES["/profile"].active
+                : NAV_STYLES["/profile"].base
+            }`}
+          >
+            <User size={16} /> Profile
+          </button>
+          <button
+            onClick={handleLogout}
+            className={`flex items-center gap-1 px-3 py-1 rounded-md shadow transition ${NAV_STYLES.logout.base}`}
+          >
+            <LogOut size={16} /> Logout
+          </button>
         </div>
       </nav>
 
@@ -126,13 +196,29 @@ export default function Dashboard() {
         <header className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">My Collection</h2>
           <div className="flex items-center gap-2">
-            <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="px-2 py-1 border rounded-md text-sm" />
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-2 py-1 border rounded-md text-sm">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-2 py-1 border rounded-md text-sm"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-2 py-1 border rounded-md text-sm"
+            >
               <option value="recent">Recently Added</option>
               <option value="title-asc">Title (A-Z)</option>
               <option value="title-desc">Title (Z-A)</option>
             </select>
-            <select value={filter.type} onChange={(e) => setFilter((f) => ({ ...f, type: e.target.value }))} className="px-2 py-1 border rounded-md text-sm">
+            <select
+              value={filter.type}
+              onChange={(e) =>
+                setFilter((f) => ({ ...f, type: e.target.value }))
+              }
+              className="px-2 py-1 border rounded-md text-sm"
+            >
               <option value="">All Types</option>
               <option value="Shojo (G)">Shojo (G)</option>
               <option value="Shounen (B)">Shounen (B)</option>
@@ -141,40 +227,100 @@ export default function Dashboard() {
               <option value="Yuri (GL)">Yuri (GL)</option>
               <option value="Yaoi (BL)">Yaoi (BL)</option>
             </select>
-            <select value={filter.status} onChange={(e) => setFilter((f) => ({ ...f, status: e.target.value }))} className="px-2 py-1 border rounded-md text-sm">
+            <select
+              value={filter.status}
+              onChange={(e) =>
+                setFilter((f) => ({ ...f, status: e.target.value }))
+              }
+              className="px-2 py-1 border rounded-md text-sm"
+            >
               <option value="">All Status</option>
               <option value="Not Started">Not Started</option>
               <option value="Reading">Reading</option>
               <option value="Completed">Completed</option>
               <option value="Dropped">Dropped</option>
             </select>
-            <select value={filter.rating} onChange={(e) => setFilter((f) => ({ ...f, rating: e.target.value }))} className="px-2 py-1 border rounded-md text-sm">
+            <select
+              value={filter.rating}
+              onChange={(e) =>
+                setFilter((f) => ({ ...f, rating: e.target.value }))
+              }
+              className="px-2 py-1 border rounded-md text-sm"
+            >
               <option value="">All Ratings</option>
-              {[1, 2, 3, 4, 5].map((r) => <option key={r} value={r}>{"⭐".repeat(r)}</option>)}
+              {[1, 2, 3, 4, 5].map((r) => (
+                <option key={r} value={r}>
+                  {"⭐".repeat(r)}
+                </option>
+              ))}
             </select>
-            <button onClick={() => navigate("/new")} className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><Plus size={16} /> New</button>
+            <button
+              onClick={() => navigate("/new")}
+              className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+            >
+              <Plus size={16} /> New
+            </button>
           </div>
         </header>
 
         {/* Grid */}
         <div className="grid grid-cols-3 gap-6">
           {filteredItems.length === 0 ? (
-            <p className="text-gray-500 w-full text-center mt-4">No manhwa found.</p>
+            <p className="text-gray-500 w-full text-center mt-4">
+              No manhwa found.
+            </p>
           ) : (
             filteredItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-xl shadow overflow-hidden cursor-pointer hover:shadow-md transition" onClick={() => setActiveItem(item)} onContextMenu={(e) => {
-                e.preventDefault(); e.stopPropagation();
-                setContextMenu({ visible: true, x: Math.min(e.pageX, window.innerWidth - 140), y: Math.min(e.pageY, window.innerHeight - 60), item });
-              }}>
+              <div
+                key={item.id}
+                className="bg-white rounded-xl shadow overflow-hidden cursor-pointer hover:shadow-md transition"
+                onClick={() => setActiveItem(item)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setContextMenu({
+                    visible: true,
+                    x: Math.min(e.pageX, window.innerWidth - 140),
+                    y: Math.min(e.pageY, window.innerHeight - 60),
+                    item,
+                  });
+                }}
+              >
                 <div className="w-full aspect-square overflow-hidden">
-                  <img src={item.cover || "https://via.placeholder.com/256?text=No+Image"} alt={item.title} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/256?text=No+Image")} />
+                  <img
+                    src={
+                      item.cover ||
+                      "https://via.placeholder.com/256?text=No+Image"
+                    }
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src =
+                        "https://via.placeholder.com/256?text=No+Image";
+                    }}
+                  />
                 </div>
                 <div className="p-4 space-y-1">
-                  <h2 className="font-semibold text-lg truncate">{item.title}</h2>
-                  <p className="text-sm text-gray-500 truncate">{item.author || "Unknown Author"}</p>
-                  {item.type && <p className="text-sm text-gray-500 truncate">{item.type}</p>}
-                  <p className="text-sm text-gray-500 truncate">{item.status}</p>
-                  {item.rating && <p className="text-yellow-500">{"⭐".repeat(item.rating)}</p>}
+                  <h2 className="font-semibold text-lg truncate">
+                    {item.title}
+                  </h2>
+                  <p className="text-sm text-gray-500 truncate">
+                    {item.author || "Unknown Author"}
+                  </p>
+                  {item.type && (
+                    <p className="text-sm text-gray-500 truncate">
+                      {item.type}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-500 truncate">
+                    {item.status}
+                  </p>
+                  {item.rating && (
+                    <p className="text-yellow-500">
+                      {"⭐".repeat(item.rating)}
+                    </p>
+                  )}
                 </div>
               </div>
             ))
@@ -185,9 +331,25 @@ export default function Dashboard() {
       {/* Context Menu */}
       <AnimatePresence>
         {contextMenu.visible && contextMenu.item && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ top: contextMenu.y, left: contextMenu.x }} className="fixed bg-white shadow-md rounded-md border p-2 z-50 w-32">
-            <button className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded" onClick={() => handleEdit(contextMenu.item!)}>Edit</button>
-            <button className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded text-red-500" onClick={() => handleDelete(contextMenu.item!.id)}>Delete</button>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            className="fixed bg-white shadow-md rounded-md border p-2 z-50 w-32"
+          >
+            <button
+              className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded"
+              onClick={() => handleEdit(contextMenu.item!)}
+            >
+              Edit
+            </button>
+            <button
+              className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded text-red-500"
+              onClick={() => handleDelete(contextMenu.item!.id)}
+            >
+              Delete
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
