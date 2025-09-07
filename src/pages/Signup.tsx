@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
-import { auth } from "../firebase"; // 🔹 import firebase auth
+import { auth } from "../firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 export default function Signup() {
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -22,11 +21,10 @@ export default function Signup() {
 
     try {
       setLoading(true);
-      // 🔹 create new user
+      // Create a new user with Firebase
       await createUserWithEmailAndPassword(auth, email, password);
-      // optional: bisa simpan username ke Firestore
       alert("Account created successfully!");
-      navigate("/app"); // langsung ke dashboard
+      navigate("/app"); // Go to dashboard
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -46,18 +44,6 @@ export default function Signup() {
         </h1>
 
         <form onSubmit={handleSignup} className="space-y-4">
-          <div className="text-left">
-            <label className="text-sm text-white">Username</label>
-            <input
-              type="text"
-              placeholder="Username"
-              className="w-full mt-1 bg-neutral-800 border border-neutral-700 text-white p-3 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-
           <div className="text-left">
             <label className="text-sm text-white">Email</label>
             <input
