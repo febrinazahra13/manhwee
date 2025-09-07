@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { FcGoogle } from "react-icons/fc";
 import { useNavigate, Link } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 export default function Landing() {
   const [email, setEmail] = useState("");
@@ -16,23 +15,11 @@ export default function Landing() {
     try {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
-      alert("Welcome back! 🎉");
       navigate("/app");
     } catch (err: any) {
       alert(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      alert("Signed in with Google ✅");
-      navigate("/app");
-    } catch (err: any) {
-      alert(err.message);
     }
   };
 
@@ -47,33 +34,15 @@ export default function Landing() {
           Welcome to Manhwee
         </h1>
         <p className="text-neutral-400 text-center text-sm">
-          Track your manhwa reading journey with ease ✨
+          Track your manhwa reading journey with style ✨
         </p>
 
-        {/* Google Login */}
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-3 border border-neutral-700 rounded-full py-3 text-white hover:bg-neutral-800 transition"
-          disabled={loading}
-        >
-          <FcGoogle size={22} />
-          Continue with Google
-        </button>
-
-        <div className="flex items-center gap-2 text-neutral-500 text-sm">
-          <div className="flex-1 h-px bg-neutral-700" />
-          <span>or</span>
-          <div className="flex-1 h-px bg-neutral-700" />
-          <div className="flex-1 h-px bg-neutral-700" />
-        </div>
-
-        {/* Email/Password Login */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="text-left">
             <label className="block text-sm text-white mb-1">Email</label>
             <input
               type="email"
-              placeholder="Enter your email"
+              placeholder="Email"
               className="w-full bg-neutral-800 border border-neutral-700 text-white p-3 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -85,7 +54,7 @@ export default function Landing() {
             <label className="block text-sm text-white mb-1">Password</label>
             <input
               type="password"
-              placeholder="Enter your password"
+              placeholder="Password"
               className="w-full bg-neutral-800 border border-neutral-700 text-white p-3 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -104,7 +73,10 @@ export default function Landing() {
 
         <p className="text-center text-neutral-400 text-sm">
           Don’t have an account?{" "}
-          <Link to="/signup" className="text-green-400 font-medium hover:underline">
+          <Link
+            to="/signup"
+            className="text-green-400 font-medium hover:underline"
+          >
             Sign up
           </Link>
         </p>
