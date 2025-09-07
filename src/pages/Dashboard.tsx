@@ -38,22 +38,35 @@ export default function Dashboard() {
 
   // Use Firebase auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        const q = query(
-          collection(db, "manhwee"),
-          where("uid", "==", user.uid)
-        );
-        const snapshot = await getDocs(q);
-        const manhwas = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })) as Manhwa[];
-        setItems(manhwas);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      // not logged in → redirect
+      navigate("/");
+      return;
+    }
+
+    try {
+      const q = query(
+        collection(db, "manhwee"),
+        where("uid", "==", user.uid)
+      );
+      const snapshot = await getDocs(q);
+      const manhwas = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as Manhwa[];
+
+      setItems(manhwas);
+    } catch (err) {
+      console.error("Error loading manhwas:", err);
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  return () => unsubscribe();
+}, [navigate]);
+
 
   // --- Close context menu on click outside ---
   useEffect(() => {
@@ -75,10 +88,11 @@ export default function Dashboard() {
     setContextMenu((prev) => ({ ...prev, visible: false }));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("manhwee:token");
+  const handleLogout = async () => {
+    await signOut(auth);
     navigate("/");
   };
+
 
   // --- Derived Data: Sorting + Filtering + Search ---
   const sortedItems = [...items].sort((a, b) => {
