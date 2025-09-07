@@ -81,8 +81,10 @@ export default function Stats() {
     achievements.push("💯 No Drops Yet!");
 
   // Genre Insight
-  const sortedGenres = Object.entries(genres as Record<string, number>)
-    .map(([genre, count]) => [genre, Number(count)] as [string, number])
+  type GenreTuple = [string, number];
+
+  const sortedGenres: GenreTuple[] = Object.entries(genres)
+    .map(([genre, count]) => [genre, Number(count)] as GenreTuple)
     .sort((a, b) => b[1] - a[1]);
 
   const favoriteGenre = sortedGenres[0];
@@ -93,6 +95,7 @@ export default function Stats() {
         (favoriteGenre[1] / (secondGenre ? secondGenre[1] || 1 : 1)) * 100
       )}% more than ${secondGenre ? secondGenre[0] : "other genres"}.`
     : "Start reading to discover your favorite genre!";
+
 
   // Navbar Styles
   const NAV_STYLES: Record<string, { base: string; active: string }> = {
