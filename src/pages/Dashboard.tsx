@@ -5,11 +5,21 @@ import { Home, BarChart2, User, LogOut, Plus } from "lucide-react";
 import DetailModal from "../components/DetailModal";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import type { Manhwa } from "../types";
-import { auth } from "../firebase";
+import { db, auth } from "../firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Dashboard() {
-  const [items, setItems] = useLocalStorage<Manhwa[]>("manhwee:data", []);
+  const [items, setItems] = useState<Manhwa[]>([]);
   const [activeItem, setActiveItem] = useState<Manhwa | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
@@ -28,15 +38,22 @@ export default function Dashboard() {
 
   // Use Firebase auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        navigate("/"); // not logged in → back to login
-      } else {
-        setLoading(false);
+        const q = query(
+          collection(db, "manhwee"),
+          where("uid", "==", user.uid)
+        );
+        const snapshot = await getDocs(q);
+        const manhwas = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Manhwa[];
+        setItems(manhwas);
       }
     });
     return () => unsubscribe();
-  }, [navigate]);
+  }, []);
 
   // --- Close context menu on click outside ---
   useEffect(() => {

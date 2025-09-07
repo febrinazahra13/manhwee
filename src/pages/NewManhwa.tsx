@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { addDoc, collection, doc, setDoc } from "firebase/firestore";
+import { db, auth } from "../firebase";
 import type { Manhwa, ManhwaType, Status, ManhwaDraft } from "../types";
 
 export default function NewManhwa() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [items, setItems] = useLocalStorage<Manhwa[]>("manhwee:data", []);
 
-  // Detect edit mode from location.state
   const editItem = (location.state as { editItem?: Manhwa })?.editItem;
 
   const [form, setForm] = useState<ManhwaDraft>({
@@ -27,7 +26,7 @@ export default function NewManhwa() {
     finishedAt: "",
   });
 
-  // Prefill form if editing
+  // Prefill if editing
   useEffect(() => {
     if (editItem) {
       setForm({
@@ -52,44 +51,51 @@ export default function NewManhwa() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const toManhwa = (draft: ManhwaDraft): Manhwa => ({
-    id: editItem?.id || crypto.randomUUID(),
-    title: draft.title?.trim() || "Untitled",
-    author: draft.author?.trim() || "Unknown",
-    type: draft.type as ManhwaType | undefined,
-    genres: (draft.genres as string[]) || [],
-    status: (draft.status as Status) || "Not Started",
-    rating: draft.rating
-      ? (Number(draft.rating) as 1 | 2 | 3 | 4 | 5)
-      : undefined,
-    cover: draft.cover?.trim() || "",
-    link: draft.link?.trim() || "",
-    notes: draft.notes?.trim() || "",
-    currentChapter: draft.currentChapter
-      ? Number(draft.currentChapter)
-      : undefined,
-    totalChapters: draft.totalChapters
-      ? Number(draft.totalChapters)
-      : undefined,
-    startedAt: draft.startedAt?.toString(),
-    finishedAt: draft.finishedAt?.toString(),
-    endDate: undefined
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newManhwa = toManhwa(form);
-
-    if (editItem) {
-      const updatedItems = items.map((i) =>
-        i.id === editItem.id ? newManhwa : i
-      );
-      setItems(updatedItems);
-    } else {
-      setItems([...items, newManhwa]);
+    if (!auth.currentUser) {
+      alert("You must be logged in!");
+      return;
     }
 
-    navigate("/app");
+    const manhwaId = editItem?.id
+    const newManhwa: Manhwa = {
+      id: manhwaId,
+      title: form.title?.trim() || "Untitled",
+      author: form.author?.trim() || "Unknown",
+      type: form.type as ManhwaType | undefined,
+      genres: (form.genres as string[]) || [],
+      status: (form.status as Status) || "Not Started",
+      rating: form.rating ? (parseInt(form.rating.toString(), 10) as 1 | 2 | 3 | 4 | 5) : undefined,
+      cover: form.cover?.trim() || "",
+      link: form.link?.trim() || "",
+      notes: form.notes?.trim() || "",
+      currentChapter: form.currentChapter ? Number(form.currentChapter) : undefined,
+      totalChapters: form.totalChapters ? Number(form.totalChapters) : undefined,
+      startedAt: form.startedAt || "",
+      finishedAt: form.finishedAt || "",
+      endDate: undefined
+    };
+
+    try {
+      if (editItem) {
+        // update existing
+        await setDoc(doc(db, "manhwee", manhwaId), {
+          ...newManhwa,
+          uid: auth.currentUser.uid,
+        });
+      } else {
+        // create new
+        await setDoc(doc(db, "manhwee", manhwaId), {
+          ...newManhwa,
+          uid: auth.currentUser.uid,
+        });
+      }
+      navigate("/app");
+    } catch (error) {
+      console.error("Error saving manhwa:", error);
+      alert("Failed to save. Please try again.");
+    }
   };
 
   return (
@@ -145,44 +151,6 @@ export default function NewManhwa() {
           )}
         </div>
 
-        {/* Type */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Type</label>
-          <select
-            value={form.type || ""}
-            onChange={(e) => handleChange("type", e.target.value as ManhwaType)}
-            className="w-full p-2 border rounded-lg"
-          >
-            <option value="">Select Type</option>
-            <option value="Shoujo (G)">Shoujo (Girls)</option>
-            <option value="Shounen (B)">Shounen (Boys)</option>
-            <option value="Josei (W)">Josei (Women)</option>
-            <option value="Seinen (M)">Seinen (Men)</option>
-            <option value="Yuri (GL)">Yuri (Girls’ Love)</option>
-            <option value="Yaoi (BL)">Yaoi (Boys’ Love)</option>
-            <option value="Bara (ML)">Bara (Male Love)</option>
-            <option value="Kodomo (Kid)">Kodomo (Kids)</option>
-            <option value="Silver & Golden">Silver & Golden</option>
-            <option value="Non-Human">Non-Human</option>
-          </select>
-        </div>
-
-        {/* Genres */}
-        <div>
-          <label>Genres (comma-separated)</label>
-          <input
-            type="text"
-            value={(form.genres as string[]).join(", ") || ""}
-            onChange={(e) =>
-              handleChange(
-                "genres",
-                e.target.value.split(",").map((g) => g.trim())
-              )
-            }
-            className="w-full p-2 border rounded-lg"
-          />
-        </div>
-
         {/* Status */}
         <div>
           <label className="block text-sm font-medium mb-1">Status</label>
@@ -213,68 +181,6 @@ export default function NewManhwa() {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* Current Chapter */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Current Chapter
-          </label>
-          <input
-            type="number"
-            min={1}
-            value={form.currentChapter || ""}
-            onChange={(e) => handleChange("currentChapter", e.target.value)}
-            className="w-full p-2 border rounded-lg"
-          />
-        </div>
-
-        {/* Total Chapters */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Total Chapters
-          </label>
-          <input
-            type="number"
-            min={1}
-            value={form.totalChapters || ""}
-            onChange={(e) => handleChange("totalChapters", e.target.value)}
-            className="w-full p-2 border rounded-lg"
-          />
-        </div>
-
-        {/* Started At */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Started At</label>
-          <input
-            type="date"
-            value={form.startedAt || ""}
-            onChange={(e) => handleChange("startedAt", e.target.value)}
-            className="w-full p-2 border rounded-lg"
-          />
-        </div>
-
-        {/* Finished At */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Finished At</label>
-          <input
-            type="date"
-            value={form.finishedAt || ""}
-            onChange={(e) => handleChange("finishedAt", e.target.value)}
-            className="w-full p-2 border rounded-lg"
-          />
-        </div>
-
-        {/* Manhwa Link */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Manhwa Link</label>
-          <input
-            type="url"
-            value={form.link || ""}
-            onChange={(e) => handleChange("link", e.target.value)}
-            className="w-full p-2 border rounded-lg"
-            placeholder="https://webtoons.com/..."
-          />
         </div>
 
         {/* Notes */}
