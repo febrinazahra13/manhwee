@@ -1,9 +1,7 @@
-// src/firebase.ts
+// firebase.ts
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAVnrkuOD5-rsIahhlsMMwxvaOPySuhw6Q",
   authDomain: "manhwee-tracker.firebaseapp.com",
@@ -16,7 +14,4 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Export Auth & Firestore
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const auth = getAuth(app);  // ✅ export auth
