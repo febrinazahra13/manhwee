@@ -81,9 +81,13 @@ export default function Stats() {
     achievements.push("💯 No Drops Yet!");
 
   // Genre Insight
-  const sortedGenres = Object.entries(genres).sort((a, b) => b[1] - a[1]);
+  const sortedGenres = Object.entries(genres as Record<string, number>)
+    .map(([genre, count]) => [genre, Number(count)] as [string, number])
+    .sort((a, b) => b[1] - a[1]);
+
   const favoriteGenre = sortedGenres[0];
   const secondGenre = sortedGenres[1];
+
   const genreInsight = favoriteGenre
     ? `You enjoy ${favoriteGenre[0]} ${Math.round(
         (favoriteGenre[1] / (secondGenre ? secondGenre[1] || 1 : 1)) * 100
