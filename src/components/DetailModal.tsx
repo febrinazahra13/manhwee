@@ -118,7 +118,6 @@ export default function DetailModal({ item, onClose }: DetailModalProps) {
           onMouseLeave={() => setIsHovered(false)}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeaveCapture={handleMouseUp}
           onMouseDown={handleMouseDown}
         >
           <img
