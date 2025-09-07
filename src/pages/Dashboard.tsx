@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, BarChart2, User, LogOut, Plus } from "lucide-react";
 import DetailModal from "../components/DetailModal";
-import { useLocalStorage } from "../hooks/useLocalStorage";
 import type { Manhwa } from "../types";
 import { db, auth } from "../firebase";
 import {
@@ -11,10 +10,8 @@ import {
   query,
   where,
   getDocs,
-  addDoc,
   deleteDoc,
   doc,
-  updateDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
@@ -36,39 +33,35 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Use Firebase auth state
+  // 🔑 Auth & Fetch Data
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      // not logged in → redirect
-      navigate("/");
-      return;
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setLoading(false);
+        navigate("/");
+        return;
+      }
 
-    try {
-      const q = query(
-        collection(db, "manhwee"),
-        where("uid", "==", user.uid)
-      );
-      const snapshot = await getDocs(q);
-      const manhwas = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as Manhwa[];
+      try {
+        const q = query(collection(db, "manhwee"), where("uid", "==", user.uid));
+        const snapshot = await getDocs(q);
+        const manhwas = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Manhwa[];
 
-      setItems(manhwas);
-    } catch (err) {
-      console.error("Error loading manhwas:", err);
-    } finally {
-      setLoading(false);
-    }
-  });
+        setItems(manhwas);
+      } catch (err) {
+        console.error("Error loading manhwas:", err);
+      } finally {
+        setLoading(false);
+      }
+    });
 
-  return () => unsubscribe();
-}, [navigate]);
+    return () => unsubscribe();
+  }, [navigate]);
 
-
-  // --- Close context menu on click outside ---
+  // Close context menu on click outside
   useEffect(() => {
     const handleClick = () =>
       setContextMenu((prev) => ({ ...prev, visible: false }));
@@ -76,29 +69,41 @@ export default function Dashboard() {
     return () => window.removeEventListener("click", handleClick);
   }, []);
 
-  const handleDelete = (id: string) => {
+  // 🔥 Delete from Firestore
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this manhwa?")) {
-      setItems(items.filter((i) => i.id !== id));
-      setContextMenu((prev) => ({ ...prev, visible: false }));
+      try {
+        await deleteDoc(doc(db, "manhwee", id));
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        setContextMenu((prev) => ({ ...prev, visible: false }));
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        alert("Failed to delete manhwa.");
+      }
     }
   };
 
+  // Edit (redirect to form with state)
   const handleEdit = (item: Manhwa) => {
     navigate("/new", { state: { editItem: item } });
     setContextMenu((prev) => ({ ...prev, visible: false }));
   };
 
+  // Logout
   const handleLogout = async () => {
-    await signOut(auth);
-    navigate("/");
+    try {
+      await signOut(auth);
+      navigate("/");
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
   };
-
 
   // --- Derived Data: Sorting + Filtering + Search ---
   const sortedItems = [...items].sort((a, b) => {
     if (sortBy === "title-asc") return a.title.localeCompare(b.title);
     if (sortBy === "title-desc") return b.title.localeCompare(a.title);
-    return b.id.localeCompare(a.id);
+    return b.id.localeCompare(a.id); // recent (by id)
   });
 
   const filteredItems = sortedItems.filter((item) => {
