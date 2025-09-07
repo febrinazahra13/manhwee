@@ -124,7 +124,7 @@ cd manhwee
 
 2. Install dependencies:
 npm install
-# atau
+atau
 yarn install
 
 3. Jalankan development server:
