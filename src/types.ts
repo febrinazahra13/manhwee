@@ -1,4 +1,4 @@
-export type Status = "Not Started" | "In Progress" | "Completed" | "Dropped";
+export type Status = "Not Started" | "Reading" | "Completed" | "Dropped";
 
 export type ManhwaType =
   | "Shoujo (G)"
