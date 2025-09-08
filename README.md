@@ -3,8 +3,8 @@
 **Manhwee** is a web application for **tracking your manhwa reading list**, featuring CRUD functionality, reading statistics, Firebase authentication, and interactive detail views.  
 Developed as part of the **Capstone Project - Student Developer Initiative (IBM x Hacktiv8)**.
 
-🌐 Live Demo → (https://manhwee.vercel.app/)
-📦 Repository → (https://github.com/febrinazahra13/manhwee)
+- 🌐 Live Demo → (https://manhwee.vercel.app/)
+- 📦 Repository → (https://github.com/febrinazahra13/manhwee)
 
 ---
 
@@ -140,4 +140,3 @@ vercel --prod
 
 ## 🧑‍💻 Author
 Mahdiyyah Febrinazahra
-Capstone Project - Student Developer Initiative (IBM x Hacktiv8)
