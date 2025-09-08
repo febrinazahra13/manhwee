@@ -1,77 +1,77 @@
 # 📚 Manhwee
 
-**Manhwee** adalah aplikasi web untuk **melacak daftar bacaan manhwa** dengan fitur CRUD, statistik bacaan, autentikasi Firebase, dan detail view interaktif.  
-Dibuat sebagai bagian dari **Capstone Project - Student Developer Initiative (IBM x Hacktiv8)**.
+**Manhwee** is a web application for **tracking your manhwa reading list**, featuring CRUD functionality, reading statistics, Firebase authentication, and interactive detail views.  
+Developed as part of the **Capstone Project - Student Developer Initiative (IBM x Hacktiv8)**.
 
-🌐 Live Demo → (https://manhwee.vercel.app/)  
-📦 Repository → (https://github.com/febrinazahra13/manhwee)
+🌐 Live Demo → [https://manhwee.vercel.app/]
+📦 Repository → [https://github.com/febrinazahra13/manhwee]
 
 ---
 
 ## 🚀 Project Overview
 
-Manhwee membantu pengguna:
-- Membuat akun & login menggunakan **Firebase Authentication**.  
-- Menambahkan, mengedit, dan menghapus daftar bacaan manhwa.  
-- Melihat detail lengkap tiap manhwa dalam modal interaktif.  
-- Melacak status bacaan: `Not Started`, `Reading`, `Completed`, `Dropped`.  
-- Melihat statistik bacaan: grafik bulanan, pie chart progress, dan insights genre.  
-- Menyimpan preferensi tambahan (misalnya posisi cover) menggunakan **localStorage**.  
+Manhwee helps users to:  
+- Create an account & log in using **Firebase Authentication**.  
+- Add, edit, and delete manhwa in their reading list.  
+- View full details of each manhwa in an interactive modal.  
+- Track reading status: `Not Started`, `Reading`, `Completed`, `Dropped`.  
+- Visualize reading statistics: monthly charts, progress pie chart, and genre insights.  
+- Store additional preferences (e.g., cover position) using **localStorage**.  
 
 ---
 
 ## 🛠️ Technologies Used
 
-- **Frontend Framework**: React + TypeScript + Vite  
-- **UI Styling**: Tailwind CSS + Framer Motion + Lucide Icons  
-- **Charts & Visualization**: Recharts  
-- **Authentication & Database**: Firebase (Auth + Firestore)  
-- **State Persistence (Tambahan)**: localStorage (untuk caching ringan)  
-- **Deployment**: Vercel  
+- **Frontend Framework:** React + TypeScript + Vite  
+- **UI Styling:** Tailwind CSS + Framer Motion + Lucide Icons  
+- **Charts & Visualization:** Recharts  
+- **Authentication & Database:** Firebase (Auth + Firestore)  
+- **State Persistence (Optional):** localStorage  
+- **Deployment:** Vercel  
 
 ---
 
 ## ✨ Features
 
 ### 🔑 Authentication
-- Signup & login menggunakan **Firebase Authentication**.  
+- Signup & login with **Firebase Authentication**.  
 - Session management & protected routes via `ProtectedRoute.tsx`.  
 
 ### 📋 Dashboard
-- Tambah, edit, hapus manhwa.  
-- Sorting, filtering, dan pencarian real-time.  
-- Context menu (klik kanan → Edit/Delete).  
+- Add, edit, and delete manhwa.  
+- Real-time sorting, filtering, and search.  
+- Context menu (right-click → Edit/Delete).  
 
 ### ➕ Add/Edit Manhwa
-- Input detail manhwa: judul, author, status, type, genres, rating, cover, link, dll.  
+- Input manhwa details: title, author, status, type, genres, rating, cover, link, etc.  
 
 ### 🔍 Detail Modal
-- Klik item untuk membuka modal dengan info lengkap.  
-- Menampilkan cover, judul, author, type, genres, status, rating, jumlah chapter, link, tanggal mulai/selesai, dan catatan.  
-- Cover bisa **di-reposition** dan disimpan secara lokal.  
+- Click a manhwa item to open a modal with full information.  
+- Displays cover, title, author, type, genres, status, rating, chapters, link, start/finish dates, and notes.  
+- Cover can be repositioned and stored locally.  
 
-### 📊 Stats Page
-- Grafik *Completed per Month*.  
-- Pie chart progress bacaan (Completed, Reading, Not Started, Dropped).  
-- Achievements (contoh: “10 Manhwa Completed!”).  
-- Genre insights → rekomendasi genre favorit pengguna.  
+### 📊 Statistics Page
+- Monthly "Completed per Month" chart.  
+- Pie chart for reading progress (Completed, Reading, Not Started, Dropped).  
+- Achievement badges (e.g., “10 Manhwa Completed!”).  
+- Genre insights → recommended favorite genres.  
 
-### 👤 Profile (Optional / Dummy)
-- Placeholder profile user (username/email).  
-- Rencana menampilkan ringkasan progress & achievement.  
+### 👤 Profile (Optional / Placeholder)
+- User profile placeholder (username/email).  
+- Plan to display summary of reading progress & achievements.  
 
 ---
 
-## 🤖 AI Support Explanation
+## 🤖 AI Support
 
-Selama pengembangan, **IBM Granite AI** digunakan untuk:
+During development, **IBM Granite AI** and **ChatGPT (OpenAI)** were used to:  
 
 - Generate boilerplate React components (Dashboard, Stats, Form).  
-- Menyusun template logic CRUD dan hooks dengan TypeScript.  
-- Membuat draft kode chart (Recharts LineChart & PieChart).  
-- Menyusun struktur modal detail.  
+- Create TypeScript templates for CRUD logic and custom hooks.  
+- Draft code for charts (Recharts LineChart & PieChart).  
+- Structure the detail modal and interactive UI components.  
 
-> Catatan: AI hanya digunakan **pada fase pengembangan**, tidak disertakan dalam produk akhir.
+> Note: AI was used **only during the development phase** and is not included in the final product.  
 
 ---
 
@@ -112,31 +112,30 @@ vite.config.ts            # Vite config
 server.js                 # (opsional) server setup
 package.json              # Project dependencies
 
-
 ---
 
 ## ⚡ Setup Instructions
 
-1. Clone repository:
+1. Clone the repository:
 (```bash)
 git clone https://github.com/febrinazahra13/manhwee.git
 cd manhwee
 
 2. Install dependencies:
 npm install
-atau
+# or
 yarn install
 
-3. Jalankan development server:
+3. Run the development server:
 npm run dev
 
-4. Buka browser di:
+4. Open your browser at:
 http://localhost:5173
 
 ## 📌 Deployment
 
-Project ini sudah di-deploy menggunakan Vercel.
-Untuk redeploy manual:
+The project is deployed via Vercel.
+To redeploy manually:
 vercel --prod
 
 ## 🧑‍💻 Author
